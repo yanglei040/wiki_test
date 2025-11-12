@@ -11,12 +11,12 @@
   ],
   "rules": [
     {
-      "pattern": "**/计算物理*/**",
+      "pattern": "**/**/计算物理*/**",
       "users": ["huangy22"],
       "labels": ["area:computational_physics"]
     },
     {
-      "pattern": "**/Computational Economics*/**",
+      "pattern": "**/**/Computational Economics*/**",
       "users": ["huangy22"],
       "labels": ["area:computational_economics"]
     }
