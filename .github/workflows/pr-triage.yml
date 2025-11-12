@@ -5,9 +5,9 @@ on:
     types: [opened, reopened, synchronize, ready_for_review, edited]
 
 permissions:
-  contents: read         # read mapping file
-  pull-requests: write   # request reviewers and comment
-  issues: write          # add/remove labels
+  contents: read
+  pull-requests: write
+  issues: write
 
 concurrency:
   group: pr-triage-${{ github.event.pull_request.id }}
@@ -144,13 +144,15 @@ jobs:
             // Field mapping: value can be string (slug) or object { slug, users?, teams? }
             const fieldMap = map.fieldMap || {};
             const fieldLabels = new Set();
+            const fieldUserReviewers = new Set();
+            const fieldTeamReviewers = new Set();
 
             function normalizedSegments(path) {
               return path.split('/').map(s => {
                 // 1) Strip trailing "@@<digits>"
                 let t = s.replace(/@@\d+$/, '');
-                // 2) Strip trailing "(本科|研究生|Undergraduate|Graduate)" with ASCII/full-width brackets, allow spaces
-                //    Support multiple trailing qualifiers if present
+                // 2) Strip trailing qualifiers (ASCII or full-width parens), allow spaces
+                //    (本科), （本科）, (研究生), （研究生）, (Undergraduate), (Graduate)
                 t = t.replace(/\s*(?:[\(（]\s*(?:本科|研究生|Undergraduate|Graduate)\s*[\)）])+\s*$/i, '');
                 return t;
               });
@@ -189,8 +191,8 @@ jobs:
                   slug = m;
                 } else if (m && typeof m === 'object') {
                   slug = m.slug || null;
-                  if (Array.isArray(m.users)) m.users.forEach(u => userReviewers.add(u));
-                  if (Array.isArray(m.teams)) m.teams.forEach(t => teamReviewers.add(t));
+                  if (Array.isArray(m.users)) m.users.forEach(u => { userReviewers.add(u); fieldUserReviewers.add(u); });
+                  if (Array.isArray(m.teams)) m.teams.forEach(t => { teamReviewers.add(t); fieldTeamReviewers.add(t); });
                 }
                 if (slug) fieldLabels.add(`field:${slug}`);
               }
@@ -198,11 +200,17 @@ jobs:
 
             // Remove PR author from reviewers
             const author = pr.user?.login;
-            if (author) userReviewers.delete(author);
+            if (author) {
+              userReviewers.delete(author);
+              fieldUserReviewers.delete(author);
+            }
+
+            // Refetch PR to avoid using stale requested reviewer lists
+            const prNow = (await github.rest.pulls.get({ owner, repo, pull_number: pr.number })).data;
 
             // Avoid re-requesting already requested reviewers
-            const alreadyUsers = new Set((pr.requested_reviewers || []).map(u => u.login));
-            const alreadyTeams = new Set((pr.requested_teams || []).map(t => t.slug));
+            const alreadyUsers = new Set((prNow.requested_reviewers || []).map(u => u.login));
+            const alreadyTeams = new Set((prNow.requested_teams || []).map(t => t.slug));
 
             const newUsers = [...userReviewers].filter(u => !alreadyUsers.has(u));
             const newTeams = [...teamReviewers].filter(t => !alreadyTeams.has(t));
@@ -212,9 +220,7 @@ jobs:
             if (sizeLabel) labelsToAdd.add(sizeLabel);
 
             // Ensure labels exist (attempt auto-create)
-            await ensureLabelsExist(
-              [...labelsToAdd].map(name => ({ name }))
-            );
+            await ensureLabelsExist([...labelsToAdd].map(name => ({ name })));
 
             // Remove previous size:* labels to keep only one
             const currentLabels = (pr.labels || []).map(l => l.name);
@@ -233,6 +239,8 @@ jobs:
             // Request reviewers if not a draft
             let requestedUsers = [];
             let requestedTeams = [];
+            let requestErrorMsg = null;
+
             if (!pr.draft) {
               const cap = 15; // GitHub API limit for combined reviewers
               const combined = [...newUsers.map(u => ({ t: 'u', v: u })), ...newTeams.map(t => ({ t: 't', v: t }))].slice(0, cap);
@@ -249,22 +257,29 @@ jobs:
                   requestedUsers = usersToReq;
                   requestedTeams = teamsToReq;
                 } catch (e) {
-                  core.warning(`Failed to request reviewers: ${e.message}`);
+                  const detail = (e.response && e.response.data && (e.response.data.message || JSON.stringify(e.response.data))) || e.message;
+                  requestErrorMsg = `Failed to request reviewers: ${detail}`;
+                  core.warning(requestErrorMsg);
                 }
               }
             }
 
             // ---- Build and upsert summary comment ----
-            const topFiles = files
+            const filesTop = files
               .sort((a, b) => (b.additions + b.deletions) - (a.additions + a.deletions))
               .slice(0, 10);
 
             const areas = [...labelsToAdd].filter(l => l.startsWith('area:'));
             const fields = [...fieldLabels];
-            const reviewersList = [
+            const matchedFieldReviewers = [
+              ...[...fieldUserReviewers].map(u => `@${u}`),
+              ...[...fieldTeamReviewers].map(t => `@${owner}/${t}`)
+            ];
+            const requestedThisRun = [
               ...requestedUsers.map(u => `@${u}`),
               ...requestedTeams.map(t => `@${owner}/${t}`)
             ];
+
             const labelsList = [...labelsToAdd];
 
             const bodyLines = [];
@@ -275,10 +290,12 @@ jobs:
             if (areas.length) bodyLines.push(`- Areas: ${areas.join(', ')}`);
             if (fields.length) bodyLines.push(`- Fields: ${fields.join(', ')}`);
             if (labelsList.length) bodyLines.push(`- Labels applied: ${labelsList.join(', ')}`);
-            if (reviewersList.length) bodyLines.push(`- Reviewers requested: ${reviewersList.join(', ')}`);
+            if (matchedFieldReviewers.length) bodyLines.push(`- Matched field reviewers: ${matchedFieldReviewers.join(', ')}`);
+            if (requestedThisRun.length) bodyLines.push(`- Reviewers requested this run: ${requestedThisRun.join(', ')}`);
+            if (requestErrorMsg) bodyLines.push(`- Reviewer request error: ${requestErrorMsg}`);
             bodyLines.push('');
             bodyLines.push(`Top changed files:`);
-            for (const f of topFiles) {
+            for (const f of filesTop) {
               bodyLines.push(`- ${f.filename} (+${f.additions} / -${f.deletions})`);
             }
             bodyLines.push('');
