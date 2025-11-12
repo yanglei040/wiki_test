@@ -11,14 +11,19 @@
   ],
   "rules": [
     {
-      "pattern": "**/**/计算物理*/**",
-      "users": ["huangy22"],
-      "labels": ["area:computational_physics"]
-    },
-    {
-      "pattern": "**/**/Computational Economics*/**",
-      "users": ["huangy22"],
-      "labels": ["area:computational_economics"]
+      "pattern": ".github/*",
+      "labels": ["github_workflow"]
     }
-  ]
+  ],
+  "fieldMap": {
+    "计算物理学": {
+      "slug": "computational_physics",
+      "users": ["huangy22"]
+    },
+    "计算经济学与金融": {
+      "slug": "computational_economics",
+      "users": ["huangy22"],
+      "teams": ["team_name"]
+    }
+  }
 }
