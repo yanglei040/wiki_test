@@ -18,11 +18,11 @@
   "fieldMap": {
     "计算物理学": {
       "slug": "computational_physics",
-      "users": ["kunyuan"]
+      "users": ["yanglei040"]
     },
     "计算经济学与金融": {
       "slug": "computational_economics",
-      "users": ["kunyuan"]
+      "users": ["yanglei040"]
     }
   }
 }
