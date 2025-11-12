@@ -27,13 +27,12 @@ jobs:
 
             // ---- Helpers ----
             function globToRegExp(glob) {
-              // Escape regex special chars, then translate globs
               let re = glob
                 .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-                .replace(/\/\*\*\/?/g, '(?:\\/.*\\/)?') // /**/ or /** -> path segments
-                .replace(/\*\*/g, '.*')                 // ** -> anything including /
-                .replace(/\*/g, '[^/]*')                // * -> anything but /
-                .replace(/\?/g, '.');                   // ? -> single char
+                .replace(/\/\*\*\/?/g, '(?:\\/.*\\/)?')
+                .replace(/\*\*/g, '.*')
+                .replace(/\*/g, '[^/]*')
+                .replace(/\?/g, '.');
               return new RegExp('^' + re + '$');
             }
 
@@ -142,6 +141,21 @@ jobs:
             const rules = Array.isArray(map.rules) ? map.rules : [];
             const ruleRegexes = rules.map(r => ({ ...r, regex: globToRegExp(r.pattern) }));
 
+            // Field mapping: value can be string (slug) or object { slug, users?, teams? }
+            const fieldMap = map.fieldMap || {};
+            const fieldLabels = new Set();
+
+            function normalizedSegments(path) {
+              return path.split('/').map(s => {
+                // 1) Strip trailing "@@<digits>"
+                let t = s.replace(/@@\d+$/, '');
+                // 2) Strip trailing "(本科|研究生|Undergraduate|Graduate)" with ASCII/full-width brackets, allow spaces
+                //    Support multiple trailing qualifiers if present
+                t = t.replace(/\s*(?:[\(（]\s*(?:本科|研究生|Undergraduate|Graduate)\s*[\)）])+\s*$/i, '');
+                return t;
+              });
+            }
+
             // ---- Compute changes ----
             const files = await listAllChangedFiles();
             const totalAdd = files.reduce((s, f) => s + (f.additions || 0), 0);
@@ -151,18 +165,34 @@ jobs:
             // Size label
             let sizeLabel = sizeBands.find(b => totalChg <= b.max)?.label || null;
 
-            // Match rules
+            // Match rules and collect reviewers/labels
             const matchedLabels = new Set([...defaultLabels]);
             const userReviewers = new Set();
             const teamReviewers = new Set();
 
             for (const f of files) {
+              // Rule-based labels/reviewers
               for (const r of ruleRegexes) {
                 if (r.regex.test(f.filename)) {
                   (r.labels || []).forEach(l => matchedLabels.add(l));
                   (r.users || []).forEach(u => userReviewers.add(u));
                   (r.teams || []).forEach(t => teamReviewers.add(t));
                 }
+              }
+              // Field-based labels and reviewers
+              for (const seg of normalizedSegments(f.filename)) {
+                const m = fieldMap[seg];
+                if (!m) continue;
+
+                let slug = null;
+                if (typeof m === 'string') {
+                  slug = m;
+                } else if (m && typeof m === 'object') {
+                  slug = m.slug || null;
+                  if (Array.isArray(m.users)) m.users.forEach(u => userReviewers.add(u));
+                  if (Array.isArray(m.teams)) m.teams.forEach(t => teamReviewers.add(t));
+                }
+                if (slug) fieldLabels.add(`field:${slug}`);
               }
             }
 
@@ -178,7 +208,7 @@ jobs:
             const newTeams = [...teamReviewers].filter(t => !alreadyTeams.has(t));
 
             // Prepare labels
-            const labelsToAdd = new Set(matchedLabels);
+            const labelsToAdd = new Set([...matchedLabels, ...fieldLabels]);
             if (sizeLabel) labelsToAdd.add(sizeLabel);
 
             // Ensure labels exist (attempt auto-create)
@@ -204,8 +234,7 @@ jobs:
             let requestedUsers = [];
             let requestedTeams = [];
             if (!pr.draft) {
-              // API limit is 15 combined reviewers
-              const cap = 15;
+              const cap = 15; // GitHub API limit for combined reviewers
               const combined = [...newUsers.map(u => ({ t: 'u', v: u })), ...newTeams.map(t => ({ t: 't', v: t }))].slice(0, cap);
               const usersToReq = combined.filter(x => x.t === 'u').map(x => x.v);
               const teamsToReq = combined.filter(x => x.t === 't').map(x => x.v);
@@ -231,6 +260,7 @@ jobs:
               .slice(0, 10);
 
             const areas = [...labelsToAdd].filter(l => l.startsWith('area:'));
+            const fields = [...fieldLabels];
             const reviewersList = [
               ...requestedUsers.map(u => `@${u}`),
               ...requestedTeams.map(t => `@${owner}/${t}`)
@@ -243,6 +273,7 @@ jobs:
             bodyLines.push(`- Files changed: ${files.length}  |  Additions: ${totalAdd}  |  Deletions: ${totalDel}`);
             if (sizeLabel) bodyLines.push(`- Size: ${sizeLabel}`);
             if (areas.length) bodyLines.push(`- Areas: ${areas.join(', ')}`);
+            if (fields.length) bodyLines.push(`- Fields: ${fields.join(', ')}`);
             if (labelsList.length) bodyLines.push(`- Labels applied: ${labelsList.join(', ')}`);
             if (reviewersList.length) bodyLines.push(`- Reviewers requested: ${reviewersList.join(', ')}`);
             bodyLines.push('');
