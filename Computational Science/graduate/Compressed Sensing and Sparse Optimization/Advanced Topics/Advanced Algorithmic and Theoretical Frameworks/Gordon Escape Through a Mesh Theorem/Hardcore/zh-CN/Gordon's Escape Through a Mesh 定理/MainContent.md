@@ -10,6 +10,8 @@ TEST CHANGE [click me](https://github.com/yanglei040/wiki_test/tree/main/keyword
 
 通过这三个层次的递进学习，你将不仅掌握戈登定理的数学精髓，更将获得一种分析[高维数据](@entry_id:138874)问题的几何直觉，为在相关领域的进一步研究和应用打下坚实的基础。
 
+TEST CHANGE [click me](https://github.com/yanglei040/wiki_test/tree/main/keyword)
+
 ## 原理与机制
 
 在上一章引言的基础上，本章深入探讨戈登（Gordon）的“穿网逃逸定理”（Escape Through a Mesh Theorem）背后的核心原理与数学机制。我们将系统地构建这一理论，从其核心的几何复杂度度量——[高斯宽度](@entry_id:749763)（Gaussian width）出发，阐述定理的精确表述及其几何解释，最终展示其在压缩感知和[稀疏恢复](@entry_id:199430)问题中的强大应用。本章旨在揭示该定理如何将一个复杂的高维概率问题转化为一个更易于分析的、由几何和概率参数控制的问题。
