@@ -9,6 +9,10 @@
 
 这个控制系统的核心是大脑，它扮演着城市的中央水务管理当局。它不知疲倦地监测的主要变量是[血浆渗透压](@article_id:315212)浓度。可以把它想象成你身体内部海洋的[恒温器](@article_id:348417)。但是，大脑被坚固如堡垒的[血脑屏障](@article_id:306803)保护着，它如何能知道血液的咸度呢？大自然的优雅解决方案是在这道屏障上建造了几个特殊的“窗户”。这些是微小的大脑区域，称为**脑室周围器官**，例如**终板血管器 (organum vasculosum of the lamina terminalis, OVLT)** 和**穹窿下器 (subfornical organ, SFO)**。在这里，被称为**[渗透压](@article_id:302332)感受器**的特殊[神经元](@article_id:324093)与[血流](@article_id:309096)直接接触。
 
+TEST CHANGE [click me](https://github.com/yanglei040/wiki_test/tree/main/keyword)
+
+keyword/a/adh/Feynman/zh-CN/抗利尿激素 (ADH)/MainContent.md
+
 这些渗透压感受器非同寻常。当你的血液变得稍微过于浓缩时——也许你刚在炎热的天气里运动而没有喝足够的水——水便开始通过[渗透](@article_id:361061)作用离开这些[神经元](@article_id:324093)。它们在物理上会收缩。这种收缩就像一个机械[触发器](@article_id:353355)，使它们发出电信号，大声疾呼：“我们这里变得太咸了！”。
 
 这些警报并非凭空发出。它们被发送到一个整合中心——**正中视前核 (median preoptic nucleus, MnPO)**，它就像一个指挥控制中心。MnPO 处理这些信号并作出两个关键决定。首先，它将信号传递到更高层的皮层区域，产生**渴感**的意识——一种寻找并饮水的强大行为驱动力。其次，它向下丘脑的**视上核 (supraoptic nucleus, SON)** 和**室旁核 (paraventricular nucleus, PVN)** 中的大细胞[神经元](@article_id:324093)发送紧急指令。这个指令很简单：“释放激素！” 。
