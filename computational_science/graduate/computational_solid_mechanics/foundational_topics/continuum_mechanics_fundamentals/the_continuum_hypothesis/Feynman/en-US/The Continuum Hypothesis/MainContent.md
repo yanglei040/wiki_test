@@ -3,7 +3,7 @@ At the heart of matter lies a paradox: while the world is composed of discrete, 
 
 This article delves into the core of this fundamental concept. In "Principles and Mechanisms," we will explore the foundational ideas of the Representative Volume Element and [scale separation](@entry_id:152215), understanding the conditions under which this grand illusion holds true and how it gives birth to cornerstones of mechanics like the stress tensor. Following this, "Applications and Interdisciplinary Connections" will journey through the real-world impact of the hypothesis, celebrating its successes in fluid and [solid mechanics](@entry_id:164042) while also investigating its fascinating breakdowns at the edges of its validity—in [hypersonic flight](@entry_id:272087), at the tip of a crack, and within microscopic capillaries. Finally, "Hands-On Practices" will provide an opportunity to engage with these ideas directly, translating theory into computational practice and solidifying your understanding of when, and how, to wield this essential engineering tool.
 
-[click me](https://www.bogrium.com)  
+[click me](https://www.bohrium.com)  
 
 🐱🐱🕊🕊
 
